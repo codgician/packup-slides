@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="codgician">
+  <title>Package Upgradability</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^4//dist/reset.css">
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^4//dist/reveal.css">
+  <style>
+    .reveal .sourceCode {  /* see #7635 */
+      overflow: visible;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="https://unpkg.com/reveal.js@^4//dist/theme/black.css" id="theme">
+  <script defer=""
+  src="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide">
+  <h1 class="title">Package Upgradability</h1>
+  <p class="subtitle">📦 The algorithm behind “packup”</p>
+  <p class="author">codgician</p>
+  <p class="date">2022.09.23</p>
+</section>
+
+<section>
+<section id="modelling" class="title-slide slide level1">
+<h1>Modelling</h1>
+
+</section>
+<section id="inputs-and-outputs" class="slide level2">
+<h2>Inputs and outputs</h2>
+<ul>
+<li><p>Inputs:</p>
+<ul>
+<li><strong>Package universe</strong>: A set of packages containing
+<em>versions</em>, <em>dependencies</em>, <em>conflicts</em> and other
+metadata.</li>
+<li><strong>User request</strong>: The packages to be
+<em>installed</em>, <em>removed</em>, <em>updated</em>, etc.</li>
+</ul></li>
+<li><p>Output: A solution satisfying constraints between the packages
+and the user request.</p></li>
+<li><p><strong>CUDF</strong> (Common Upgradability Description Format)
+by MANCOOSI project.</p></li>
+</ul>
+</section>
+<section id="package-description" class="slide level2">
+<h2>Package description</h2>
+<ul>
+<li>Denote as a partial function <span class="math inline">\phi</span>,
+when given package <span class="math inline">p</span> with version <span
+class="math inline">v</span>, it returns a tuple containing:
+<ul>
+<li><span class="math inline">\phi(p, v).installed</span>
+<ul>
+<li><code>true</code> or <code>false</code></li>
+</ul></li>
+<li><span class="math inline">\phi(p, v).conflicts, \phi(p,
+v).depends</span>
+<ul>
+<li>A set of constraints <span class="math inline">(p, relop,
+n)</span></li>
+<li><span class="math inline">relop</span>: <span class="math inline">=,
+\ne, \ge, \le</span></li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+<section id="user-request" class="slide level2">
+<h2>User request</h2>
+<ul>
+<li>A pair of sets of constraints: <span class="math inline">(l_i,
+l_d)</span>
+<ul>
+<li><span class="math inline">l_i</span>: packages must be
+installed</li>
+<li><span class="math inline">l_d</span>: packages must be removed</li>
+</ul></li>
+</ul>
+</section>
+<section id="solution" class="slide level2">
+<h2>Solution</h2>
+<ul>
+<li>Another package description <span class="math inline">\psi</span>,
+which:
+<ul>
+<li><span class="math inline">\psi</span> differs from <span
+class="math inline">\phi</span> only in the <span
+class="math inline">installed</span> properties;</li>
+<li>all <span class="math inline">depends</span> properties are
+satisfied;</li>
+<li>no <span class="math inline">conflicts</span> are violated in <span
+class="math inline">\psi</span>;</li>
+<li><span class="math inline">l_i, l_d</span> (packages must be
+installed / removed) are met;</li>
+</ul></li>
+</ul>
+</section>
+<section id="measuring-solution" class="slide level2">
+<h2>Measuring solution</h2>
+<ul>
+<li>Factors:
+<ul>
+<li><span class="math inline">removed(\phi, \psi) = |\{ p \mid i_\phi(p)
+\neq \emptyset \land i_\psi(p) = \emptyset \}|</span></li>
+<li><span class="math inline">new(\phi, \psi) = |\{ p \mid i_\phi(p) =
+\emptyset \land i_\psi(p) \neq \emptyset \}|</span></li>
+<li><span class="math inline">changed(\phi, \psi) = |\{ p \mid i_\phi(p)
+\neq i_\psi(p)\}|</span></li>
+<li><span class="math inline">notuptodate(\phi, \psi) = |\{ p \mid
+i_\psi(p) \neq \emptyset \land v_\text{max} \not\in i_\psi(p)
+\}|</span></li>
+</ul></li>
+<li>Criterion: a tuple <span class="math inline">\tau = (f_1, \dots,
+f_n)</span> where <span class="math inline">f_i</span> is one of the
+factors defined above.</li>
+<li>Compare in lexigraphic ordering.</li>
+</ul>
+</section></section>
+<section>
+<section id="encoding" class="title-slide slide level1">
+<h1>Encoding</h1>
+<p>Leveraging propositional logic, the problem could be encoded as a
+weighted partial MAXSAT formula with:</p>
+<ul>
+<li><strong>hard clauses</strong>: constraints MUST be satisfied</li>
+<li><strong>soft clauses</strong>: constraints with a weight <span
+class="math inline">W_i</span>, preferrably satisfied.</li>
+</ul>
+<p><strong>Goal</strong>: Maximize the sum of weights of satisfied soft
+clauses.</p>
+</section>
+<section id="denotations" class="slide level2">
+<h2>Denotations</h2>
+<p>Wether or not…</p>
+<ul>
+<li><span class="math inline">x_p^v</span>: version <span
+class="math inline">v</span> of pacage <span
+class="math inline">p</span> is installed</li>
+<li><span class="math inline">u\uparrow^{v}_{p}</span>: all versions
+<span class="math inline">\ge v</span> of package <span
+class="math inline">p</span> are uninstalled</li>
+<li><span class="math inline">u\downarrow^{v}_{p}</span>: all versions
+<span class="math inline">\le v</span> of package <span
+class="math inline">p</span> are uninstalled</li>
+<li><span class="math inline">i\uparrow^{v}_{p}</span>: exists a version
+<span class="math inline">\ge v</span> of package <span
+class="math inline">p</span> is installed</li>
+<li><span class="math inline">i\downarrow^{v}_{p}</span>: exists a
+version <span class="math inline">\le v</span> of package <span
+class="math inline">p</span> is installed</li>
+</ul>
+</section>
+<section id="conflicts" class="slide level2">
+<h2>Conflicts</h2>
+<p>If version <span class="math inline">v</span> of package <span
+class="math inline">p</span> conflicts with version <span
+class="math inline">\le n</span> of package <span
+class="math inline">q</span>:</p>
+<ul>
+<li><strong>either</strong> version <span class="math inline">v</span>
+of package <span class="math inline">p</span> is not installed,</li>
+<li><strong>or</strong> all versions <span class="math inline">\le
+n</span> of package <span class="math inline">q</span> are
+uninstalled.</li>
+</ul>
+<p><span class="math display">
+C[x_p^v, (q, \le, n)] = \neg x_p^v \lor u\downarrow_q^n
+</span></p>
+</section>
+<section class="slide level2">
+
+<p>If version <span class="math inline">v</span> of package <span
+class="math inline">p</span> conflicts with version <span
+class="math inline">\ge n</span> of package <span
+class="math inline">q</span>:</p>
+<ul>
+<li><strong>either</strong> version <span class="math inline">v</span>
+of package <span class="math inline">p</span> is not installed,</li>
+<li><strong>or</strong> all versions <span class="math inline">\ge
+n</span> of package <span class="math inline">q</span> are
+uninstalled.</li>
+</ul>
+<p><span class="math display">
+C[x_p^v, (q, \ge, n)] = \neg x_p^v \lor u\uparrow_q^n
+</span></p>
+</section>
+<section class="slide level2">
+
+<p>If version <span class="math inline">v</span> of package <span
+class="math inline">p</span> conflicts with version <span
+class="math inline">n</span> of package <span
+class="math inline">q</span>:</p>
+<ul>
+<li><strong>either</strong> version <span class="math inline">v</span>
+of package <span class="math inline">p</span> is not installed,</li>
+<li><strong>or</strong> versions <span class="math inline">n</span> of
+package <span class="math inline">q</span> is uninstalled.</li>
+</ul>
+<p><span class="math display">
+C[x_p^v, (q, =, n)] = \neg x_p^v \lor \neg x_q^n
+</span></p>
+</section>
+<section class="slide level2">
+
+<p>If version <span class="math inline">v</span> of package <span
+class="math inline">p</span> conflicts with version <span
+class="math inline">\neq n</span> of package <span
+class="math inline">q</span>:</p>
+<ul>
+<li><strong>either</strong> version <span class="math inline">v</span>
+of package <span class="math inline">p</span> is not installed,</li>
+<li><strong>or</strong> all versions <span class="math inline">\neq
+n</span> of package <span class="math inline">q</span> are
+uninstalled.</li>
+</ul>
+<p><span class="math display">
+C[x_p^v, (q, \neq, n)] = (\neg x_p^v \lor u\downarrow^n_q) \land (\neg
+x_p^v \lor u\uparrow^n_q)
+</span></p>
+</section>
+<section class="slide level2">
+
+<p>For package <span class="math inline">p</span> with version <span
+class="math inline">v</span>, denoting its set of conflict constraints
+as <span class="math inline">l</span>:</p>
+<p><span class="math display">
+C[x_p^v, l] = \bigwedge_{r \in l} C[x_p^v, r]
+</span></p>
+</section>
+<section id="dependencies" class="slide level2">
+<h2>Dependencies</h2>
+<p>If version <span class="math inline">v</span> of package <span
+class="math inline">p</span> depends on any version <span
+class="math inline">\le n</span> of package <span
+class="math inline">q</span>:</p>
+<ul>
+<li><strong>either</strong> version <span class="math inline">v</span>
+of package <span class="math inline">p</span> is not installed,</li>
+<li><strong>or</strong> exists a version <span class="math inline">\le
+n</span> of package <span class="math inline">q</span> is
+installed.</li>
+</ul>
+<p><span class="math display">
+D[x_p^v, (q, \le, n)] = \neg x_p^v \lor i\downarrow_q^n
+</span></p>
+</section>
+<section class="slide level2">
+
+<p>If version <span class="math inline">v</span> of package <span
+class="math inline">p</span> depends on any version <span
+class="math inline">\ge n</span> of package <span
+class="math inline">q</span>:</p>
+<ul>
+<li><strong>either</strong> version <span class="math inline">v</span>
+of package <span class="math inline">p</span> is not installed,</li>
+<li><strong>or</strong> exists a version <span class="math inline">\ge
+n</span> of package <span class="math inline">q</span> is
+installed.</li>
+</ul>
+<p><span class="math display">
+D[x_p^v, (q, \ge, n)] = \neg x_p^v \lor i\uparrow_q^n
+</span></p>
+</section>
+<section class="slide level2">
+
+<p>If version <span class="math inline">v</span> of package <span
+class="math inline">p</span> depends on version <span
+class="math inline">n</span> of package <span
+class="math inline">q</span>:</p>
+<ul>
+<li><strong>either</strong> version <span class="math inline">v</span>
+of package <span class="math inline">p</span> is not installed,</li>
+<li><strong>or</strong> version <span class="math inline">n</span> of
+package <span class="math inline">q</span> is installed.</li>
+</ul>
+<p><span class="math display">
+D[x_p^v, (q, =, n)] = \neg x_p^v \lor x_q^n
+</span></p>
+</section>
+<section class="slide level2">
+
+<p>If version <span class="math inline">v</span> of package <span
+class="math inline">p</span> depends on any version <span
+class="math inline">\neq n</span> of package <span
+class="math inline">q</span>:</p>
+<ul>
+<li><strong>either</strong> version <span class="math inline">v</span>
+of package <span class="math inline">p</span> is not installed,</li>
+<li><strong>or</strong> exists a version <span class="math inline">\neq
+n</span> of package <span class="math inline">q</span> is
+installed.</li>
+</ul>
+<p><span class="math display">
+D[x_p^v, (q, \neq, n)] = \neg x_p^v \lor i\downarrow_q^n \lor
+i\uparrow_q^n
+</span></p>
+</section>
+<section class="slide level2">
+
+<p>Dependency constraints could be “depending on both” or “depending on
+either”:</p>
+<p><span class="math display">
+D[x_p^v, l_1 \oplus l_2] = D[x_p^v, l_1] \oplus D[x_p^v, l_2] \text{,
+where } \oplus \in \{\land, \lor \}
+</span></p>
+</section>
+<section id="make-our-denotations-work" class="slide level2">
+<h2>Make our denotations work</h2>
+<ul>
+<li>When <span class="math inline">u\uparrow_p^v</span> is
+<code>true</code>:
+<ul>
+<li>package <span class="math inline">p</span> of version <span
+class="math inline">v</span> can’t be installed, so <span
+class="math inline">x_p^v</span> must be <code>false</code> <span
+class="math display">
+\neg u\uparrow_p^v \lor \neg x_p^v
+</span></li>
+<li>package <span class="math inline">p</span> of version <span
+class="math inline">&gt; v</span> should also be uninstalled, so <span
+class="math inline">u\uparrow_p^{v + 1}</span> should also be
+<code>true</code> <span class="math display">
+\neg u\uparrow_p^v \lor u_p^{v + 1}
+</span></li>
+</ul></li>
+</ul>
+</section>
+<section class="slide level2">
+
+<ul>
+<li>When <span class="math inline">u\downarrow_p^v</span> is
+<code>true</code>:
+<ul>
+<li>package <span class="math inline">p</span> of version <span
+class="math inline">v</span> can’t be installed, <span
+class="math inline">x_p^v</span> must be <code>false</code> <span
+class="math display">
+\neg u\downarrow_p^v \lor \neg x_p^v
+</span></li>
+<li>package <span class="math inline">p</span> of version <span
+class="math inline">&lt; v</span> should also be uninstalled, so <span
+class="math inline">u\downarrow_p^{v - 1}</span> should also be
+<code>true</code> <span class="math display">
+\neg u\downarrow_p^v \lor  u_p^{v - 1}
+</span></li>
+</ul></li>
+</ul>
+</section>
+<section class="slide level2">
+
+<ul>
+<li>When <span class="math inline">i\uparrow_p^v</span> is
+<code>true</code>:
+<ul>
+<li><strong>either</strong> package <span class="math inline">p</span>
+with version <span class="math inline">v</span> is installed: <span
+class="math inline">x_p^v</span></li>
+<li><strong>or</strong> exists a package version <span
+class="math inline">&gt;v</span> is installed: <span
+class="math inline">i\uparrow_p^{v + 1}</span></li>
+</ul></li>
+</ul>
+<p><span class="math display">
+\neg i\uparrow_p^v \lor (x_p^v \lor i\uparrow_p^{v+1})
+</span></p>
+</section>
+<section class="slide level2">
+
+<ul>
+<li>When <span class="math inline">i\downarrow_p^v</span> is
+<code>true</code>:
+<ul>
+<li><strong>either</strong> package <span class="math inline">p</span>
+with version <span class="math inline">v</span> is installed: <span
+class="math inline">x_p^v</span></li>
+<li><strong>or</strong> exists a package version <span
+class="math inline">&gt;v</span> is installed: <span
+class="math inline">i\downarrow_p^{v + 1}</span></li>
+</ul></li>
+</ul>
+<p><span class="math display">
+\neg i\downarrow_p^v \lor (x_p^v \lor i\downarrow_p^{v+1})
+</span></p>
+</section>
+<section class="slide level2">
+
+<p>Therefore, for each package <span class="math inline">p</span> with
+version <span class="math inline">v</span>, we generate:</p>
+<p><span class="math display">
+\begin{aligned}
+I_p^v = &amp; (\neg u\uparrow_p^v \lor \neg x_p^v) \land (\neg
+u\downarrow_p^v \lor  u_p^{v - 1}) \\
+&amp; \land (\neg u\downarrow_p^v \lor \neg x_p^v) \land (\neg
+u\downarrow_p^v \lor  u_p^{v - 1}) \\
+&amp; \land (\neg i\uparrow_p^v \lor x_p^v \lor i\uparrow_p^{v+1}) \land
+(\neg i\downarrow_p^v \lor x_p^v \lor i\downarrow_p^{v+1})
+\end{aligned}
+</span></p>
+</section>
+<section id="the-hard-constraints" class="slide level2">
+<h2>The hard constraints</h2>
+<ul>
+<li>For package description <span class="math inline">\phi</span> and
+user request <span class="math inline">(l_i, l_d)</span>, denote <span
+class="math inline">r</span> as a “dummy” always-installed package:
+<span class="math display">
+\begin{aligned}
+r &amp; \land D(r, l_i) \land C(r, l_d) \land \bigwedge I_p^v \\
+&amp; \land \bigwedge_{(p, v) \in Dom(\phi)} D[x_p^v, \phi(p,
+v).depends] \land C[x_p, \phi(p, v).conflicts]
+\end{aligned}
+</span></li>
+</ul>
+</section>
+<section id="the-soft-constraints" class="slide level2">
+<h2>The soft constraints</h2>
+<ul>
+<li>Denote <span class="math inline">i_\phi(p)</span> as ta set of
+versions of a given package <span class="math inline">p</span>.</li>
+<li><span class="math inline">removed(\phi, \psi)</span>:
+<ul>
+<li>If <span class="math inline">i_\phi(p) \neq \emptyset</span>,
+generate <span class="math inline">i\uparrow_p^1</span> with <span
+class="math inline">W_r</span></li>
+<li>Higher score when less packages are removed.</li>
+</ul></li>
+<li><span class="math inline">new(\phi, \psi)</span>:
+<ul>
+<li>If <span class="math inline">i_\phi(p) \neq \emptyset</span>,
+generate <span class="math inline">u\uparrow_p^1</span> with <span
+class="math inline">W_n</span></li>
+<li>Higher score when less new packages are installed.</li>
+</ul></li>
+</ul>
+</section>
+<section class="slide level2">
+
+<ul>
+<li><span class="math inline">change(\phi, \psi)</span>:
+<ul>
+<li>Let <span class="math inline">s_p</span> be a fresh variable</li>
+<li><strong>Hard clause</strong>: (different clause needed for different
+installed state in <span class="math inline">\phi</span>) <span
+class="math display">
+\begin{cases}
+\neg s_p \lor x_p^v &amp; (\phi(p, v).installed = true) \\
+\neg s_p \lor \neg x_p^v &amp; (\phi(p, v).installed = false)
+\end{cases}
+</span></li>
+<li><strong>Soft clause</strong>: <span class="math inline">s_p</span>
+with <span class="math inline">W_c</span></li>
+<li>Higher score when less packages are changed</li>
+</ul></li>
+</ul>
+</section>
+<section class="slide level2">
+
+<ul>
+<li><span class="math inline">notuptodate(\phi, \psi)</span>:
+<ul>
+<li>Let <span class="math inline">t_p</span> be a fresh variable</li>
+<li><strong>Hard clause</strong>: (ensure that only installed packages
+are taken into account)
+<ul>
+<li><span class="math inline">\neg x_p^v \lor t_p</span> for all <span
+class="math inline">(p, v) \in Dom(\psi)</span></li>
+</ul></li>
+<li><strong>Soft clause</strong>: <span class="math inline">\neg t_p
+\lor x_p^{v_\text{max}}</span> with <span
+class="math inline">W_{nu}</span></li>
+<li>Higher score when more packages are up-to-date.</li>
+</ul></li>
+</ul>
+</section></section>
+<section id="references" class="title-slide slide level1">
+<h1>References</h1>
+<ul>
+<li><a
+href="https://content.iospress.com/download/journal-on-satisfiability-boolean-modeling-and-computation/sat190090?id=journal-on-satisfiability-boolean-modeling-and-computation%2Fsat190090">Janota,
+M., Lynce, I., Manquinho, V. and Marques-Silva, J., 2012.
+<strong>PackUp: Tools for package upgradability solving.</strong>
+Journal on Satisfiability, Boolean Modeling and Computation, 8(1-2),
+pp.89-94.</a></li>
+</ul>
+</section>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/reveal.js@^4//dist/reveal.js"></script>
+
+  <!-- reveal.js plugins -->
+  <script src="https://unpkg.com/reveal.js@^4//plugin/notes/notes.js"></script>
+  <script src="https://unpkg.com/reveal.js@^4//plugin/search/search.js"></script>
+  <script src="https://unpkg.com/reveal.js@^4//plugin/zoom/zoom.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: true,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'bottom-right',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: false,
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: false,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: true,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'default',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: true,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'slide',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'fade',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1366,
+
+        height: 768,
+
+        // reveal.js plugins
+        plugins: [
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    </body>
+</html>

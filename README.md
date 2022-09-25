@@ -1,0 +1,3 @@
+# The algorithm behind packup
+
+This slides could be seen as reading notes for [PackUp: Tools for package upgradability solving](https://content.iospress.com/download/journal-on-satisfiability-boolean-modeling-and-computation/sat190090?id=journal-on-satisfiability-boolean-modeling-and-computation%2Fsat190090). We prepare to leverage this amazing work to build our Hackathon project [NugetNinjia](https://github.com/microsoft/NugetNinjia). 
