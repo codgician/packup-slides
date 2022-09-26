@@ -170,7 +170,7 @@ clauses.</p>
 <p>Wether or not…</p>
 <ul>
 <li><span class="math inline">x_p^v</span>: version <span
-class="math inline">v</span> of pacage <span
+class="math inline">v</span> of package <span
 class="math inline">p</span> is installed</li>
 <li><span class="math inline">u\uparrow^{v}_{p}</span>: all versions
 <span class="math inline">\ge v</span> of package <span
@@ -356,7 +356,7 @@ class="math display">
 class="math inline">&gt; v</span> should also be uninstalled, so <span
 class="math inline">u\uparrow_p^{v + 1}</span> should also be
 <code>true</code> <span class="math display">
-\neg u\uparrow_p^v \lor u_p^{v + 1}
+\neg u\uparrow_p^v \lor u\uparrow_p^{v + 1}
 </span></li>
 </ul></li>
 </ul>
@@ -377,7 +377,7 @@ class="math display">
 class="math inline">&lt; v</span> should also be uninstalled, so <span
 class="math inline">u\downarrow_p^{v - 1}</span> should also be
 <code>true</code> <span class="math display">
-\neg u\downarrow_p^v \lor  u_p^{v - 1}
+\neg u\downarrow_p^v \lor  u_p\downarrow^{v - 1}
 </span></li>
 </ul></li>
 </ul>
@@ -410,12 +410,12 @@ class="math inline">i\uparrow_p^{v + 1}</span></li>
 with version <span class="math inline">v</span> is installed: <span
 class="math inline">x_p^v</span></li>
 <li><strong>or</strong> exists a package version <span
-class="math inline">&gt;v</span> is installed: <span
-class="math inline">i\downarrow_p^{v + 1}</span></li>
+class="math inline">&lt;v</span> is installed: <span
+class="math inline">i\downarrow_p^{v - 1}</span></li>
 </ul></li>
 </ul>
 <p><span class="math display">
-\neg i\downarrow_p^v \lor (x_p^v \lor i\downarrow_p^{v+1})
+\neg i\downarrow_p^v \lor (x_p^v \lor i\downarrow_p^{v-1})
 </span></p>
 </section>
 <section class="slide level2">
@@ -425,11 +425,11 @@ version <span class="math inline">v</span>, we generate:</p>
 <p><span class="math display">
 \begin{aligned}
 I_p^v = &amp; (\neg u\uparrow_p^v \lor \neg x_p^v) \land (\neg
-u\downarrow_p^v \lor  u_p^{v - 1}) \\
+u\uparrow_p^v \lor u_p^{v + 1}) \\
 &amp; \land (\neg u\downarrow_p^v \lor \neg x_p^v) \land (\neg
 u\downarrow_p^v \lor  u_p^{v - 1}) \\
 &amp; \land (\neg i\uparrow_p^v \lor x_p^v \lor i\uparrow_p^{v+1}) \land
-(\neg i\downarrow_p^v \lor x_p^v \lor i\downarrow_p^{v+1})
+(\neg i\downarrow_p^v \lor x_p^v \lor i\downarrow_p^{v-1})
 \end{aligned}
 </span></p>
 </section>
@@ -508,6 +508,17 @@ class="math inline">W_{nu}</span></li>
 </ul></li>
 </ul>
 </section></section>
+<section id="implementation-progress" class="title-slide slide level1">
+<h1>Implementation progress</h1>
+<p><strong>🚧 Still work in progress…</strong></p>
+<ul>
+<li>We planned to leverage Microsoft.Z3 as the SAT/SMT solver, but Z3
+has no built-in MAXSAT support.</li>
+<li>We are researching different MAXSAT algorithms to implement our
+algorithm so that the project code could be completely C#.</li>
+</ul>
+</section>
+
 <section id="references" class="title-slide slide level1">
 <h1>References</h1>
 <ul>

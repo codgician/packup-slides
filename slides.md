@@ -63,7 +63,7 @@ Leveraging propositional logic, the problem could be encoded as a weighted parti
 
 Wether or not...
 
-- $x_p^v$: version $v$ of pacage $p$ is installed
+- $x_p^v$: version $v$ of package $p$ is installed
 - $u\uparrow^{v}_{p}$: all versions $\ge v$ of package $p$ are uninstalled
 - $u\downarrow^{v}_{p}$: all versions $\le v$ of package $p$ are uninstalled
 - $i\uparrow^{v}_{p}$: exists a version $\ge v$ of package $p$ is installed
@@ -182,7 +182,7 @@ $$
   $$
   - package $p$ of version $> v$ should also be uninstalled, so $u\uparrow_p^{v + 1}$ should also be `true`
   $$
-  \neg u\uparrow_p^v \lor u_p^{v + 1}
+  \neg u\uparrow_p^v \lor u\uparrow_p^{v + 1}
   $$
 
 ---
@@ -194,7 +194,7 @@ $$
   $$
   - package $p$ of version $< v$ should also be uninstalled, so $u\downarrow_p^{v - 1}$ should also be `true`
   $$
-  \neg u\downarrow_p^v \lor  u_p^{v - 1}
+  \neg u\downarrow_p^v \lor  u_p\downarrow^{v - 1}
   $$
 
 ---
@@ -211,10 +211,10 @@ $$
 
 - When $i\downarrow_p^v$ is `true`:
   - **either** package $p$ with version $v$ is installed: $x_p^v$
-  - **or** exists a package version $>v$ is installed: $i\downarrow_p^{v + 1}$
+  - **or** exists a package version $<v$ is installed: $i\downarrow_p^{v - 1}$
 
 $$
-\neg i\downarrow_p^v \lor (x_p^v \lor i\downarrow_p^{v+1})
+\neg i\downarrow_p^v \lor (x_p^v \lor i\downarrow_p^{v-1})
 $$
 
 ---
@@ -223,9 +223,9 @@ Therefore, for each package $p$ with version $v$, we generate:
 
 $$
 \begin{aligned}
-I_p^v = & (\neg u\uparrow_p^v \lor \neg x_p^v) \land (\neg u\downarrow_p^v \lor  u_p^{v - 1}) \\
+I_p^v = & (\neg u\uparrow_p^v \lor \neg x_p^v) \land (\neg u\uparrow_p^v \lor u_p^{v + 1}) \\
 & \land (\neg u\downarrow_p^v \lor \neg x_p^v) \land (\neg u\downarrow_p^v \lor  u_p^{v - 1}) \\
-& \land (\neg i\uparrow_p^v \lor x_p^v \lor i\uparrow_p^{v+1}) \land (\neg i\downarrow_p^v \lor x_p^v \lor i\downarrow_p^{v+1})
+& \land (\neg i\uparrow_p^v \lor x_p^v \lor i\uparrow_p^{v+1}) \land (\neg i\downarrow_p^v \lor x_p^v \lor i\downarrow_p^{v-1})
 \end{aligned}
 $$
 
@@ -271,6 +271,13 @@ $$
     - $\neg x_p^v \lor t_p$ for all $(p, v) \in Dom(\psi)$
   - **Soft clause**: $\neg t_p \lor x_p^{v_\text{max}}$ with $W_{nu}$
   - Higher score when more packages are up-to-date.
+
+# Implementation progress
+
+**🚧 Still work in progress...**
+
+- We planned to leverage Microsoft.Z3 as the SAT/SMT solver, but Z3 has no built-in MAXSAT support.
+- We are researching different MAXSAT algorithms to implement our algorithm so that the project code could be completely C#.
 
 # References
 
